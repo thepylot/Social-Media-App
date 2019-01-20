@@ -20,8 +20,26 @@ class User(UserMixin, Model):
         return Post.select().where(Post.user == self)
 
     def get_stream(self):
-        return Post.select().where(Post.user == self)  
+        return Post.select().where(Post.user == self) 
 
+    def following(self):
+        return (
+            User.select().join(
+                RelationShip, on=RelationShip.to_user
+            ).where(
+                RelationShip.from_user == self
+            )
+        )
+    def followers(self):
+        return (
+            User.select().join(
+                RelationShip, on=RelationShip.from_user
+            ).where(
+                RelationShip.to_user == self
+            )
+        )
+
+     
     @classmethod
     def create_user(cls, username, email, password, admin=False):
         try:
@@ -46,12 +64,21 @@ class Post(Model):
     class Meta:
         database = DATABASE
         order_by = ('-timestamp',)
-               
+
+
+class RelationShip(Model):
+    from_user = ForeignKeyField(User, related_name='relationships')
+    to_user = ForeignKeyField(User, related_name='related_to')
+
+    class Meta:
+        database = DATABASE
+        indexes = ((('from_user', 'to_user'), True),)
+
 
 
 
 
 def initialize():
     DATABASE.connect()
-    DATABASE.create_tables([User, Post], safe=True)
+    DATABASE.create_tables([User, Post, RelationShip], safe=True)
     DATABASE.close() 
